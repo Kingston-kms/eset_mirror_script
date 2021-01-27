@@ -14,6 +14,7 @@ Script to create own eset mirror
 # Requirements
 - PHP
 - nginx or other web-server
+- unrar
 
 # Installations
 - copy nod32ms.conf.%lang% -> nod32ms.conf
