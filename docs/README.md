@@ -88,69 +88,30 @@ Then in console run command (need sudo or root access): `a2ensite nod32ms-site.c
 ## Nginx Configuration File
 Example configuration file:
 ```
+map $http_user_agent $ver {
+	"~^.*(EEA|EES|EFSW)+\s+Update.*BPC\s+(\d+)\..*$" "ep$2";
+	"~^.*Update.*BPC\s+(\d+)\..*$" "v$1";
+}
 server {
-
         listen 80;
-        listen [::]:80;
+        server_name _;
+        index index.html;
+        access_log /var/log/nginx/nod32_access.log main;
+        error_log /var/log/nginx/nod32_error.log warn;
 
-        root /var/www/eset_mirror_script/www;
-
-        # Add index.php to the list if you are using PHP
-        index index.html index.htm;
-
-        server_name nod32.domain.ru update.domain.ru;
-
-        location / {
-
-          if ($http_user_agent ~ "^.*(EEA|EES)+\s+Update.*BPC\s+(\d+)\..*"){
-             set $ver $2;
-          }
-
-          if ($ver ~ '^[7-8]+$') {
-            rewrite ^/update.ver$ /eset_upd/ep$ver/dll/update.ver break;
-            rewrite ^/eset_upd/update.ver$ /eset_upd/ep$ver/dll/update.ver break;
-          }
-
-          if ($ver ~ '^[6]+$') {
-              rewrite ^/update.ver$ /eset_upd/ep6/update.ver break;
-              rewrite ^/eset_upd/update.ver$ /eset_upd/ep6/update.ver break;
-          }
-
-          if ($http_user_agent ~ "^.*(EEA|EES)+\s+Update.*BPC\s+(\d+)\..*$"){
-              return 403;
-          }
-
-          if ($http_user_agent ~ "^.*Update.*BPC\s+(\d+)\..*$"){
-            set $ver $1;
-          }
-
-          if ($ver ~ '^(5|9)+$') {
-             rewrite ^/update.ver$ /eset_upd/v$ver/update.ver break;
-             rewrite ^/eset_upd/update.ver$ /eset_upd/v$ver/update.ver break;
-          }
-
-          if ($ver ~ '^[3-8]+$')
-          {
-             rewrite ^/update.ver$ /eset_upd/v3/update.ver break;
-             rewrite ^/eset_upd/update.ver$ /eset_upd/v3/update.ver break;
-          }
-
-          if ($ver ~ "^1[0-1]+$"){
-            rewrite ^/update.ver$ /eset_upd/v10/dll/update.ver break;
-            rewrite ^/eset_upd/update.ver$ /eset_upd/v10/dll/update.ver break;
-          }
-
-          if ($ver ~ "^1[2-9]+$"){
-            rewrite ^/update.ver$ /eset_upd/v$ver/dll/update.ver break;
-            rewrite ^/eset_upd/update.ver$ /eset_upd/v$ver/dll/update.ver break;
-          }
-
-
+location / {
+        root /eset_mirror_script/www;
+        index index.html;
         }
 
-        access_log /var/www/eset_mirror_script/log/nginx-access.log;
-        error_log /var/www/eset_mirror_script/log/nginx-error.log;
+location ~* \.ver$ {
 
+        if ($ver ~ "^ep[6-8]$") { rewrite ^/(dll/)?update.ver$ /eset_upd/$ver/$1update.ver break; }
+        if ($ver ~ "^v(5|9)$")  { rewrite ^(.*) /eset_upd/$ver/update.ver break; }
+        if ($ver ~ "^v[3-8]$")  { rewrite ^(.*) /eset_upd/v3/update.ver break; }
+        if ($ver ~ "^v1[0-1]$") { rewrite ^(.*) /eset_upd/v10/dll/update.ver break; }
+        if ($ver ~ "^v1[2-9]$") { rewrite ^(.*) /eset_upd/$ver/dll/update.ver break; }
+        }
 }
 ```
 Place this file in `/etc/nginx/sites-available/` and name nod32ms-site.conf
